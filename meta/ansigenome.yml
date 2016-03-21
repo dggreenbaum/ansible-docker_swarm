@@ -1,0 +1,21 @@
+---
+
+ansigenome_info:
+  github_url: ""
+  git_branch: "master"
+  galaxy_id: ''
+
+  travis: True
+
+  license_url: 'https://tldrlegal.com/license/gnu-general-public-license-v3-(gpl-3)'
+
+  authors:
+    - name:  'Douglas Greenbaum'
+      url: ''
+      email: 'dggreenbaum@gmail.com'
+      twitter: 'dggreenbaum'
+      github: 'dggreenbaum'
+
+  synopsis: |
+    [Docker Swarm](https://docs.docker.com/swarm/) is native clustering for
+    Docker. It turns a pool of Docker hosts into a single, virtual Docker host.

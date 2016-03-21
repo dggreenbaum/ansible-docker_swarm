@@ -1,0 +1,139 @@
+
+---
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Docker swarm packages and installation
+# ------------------------------------
+
+# .. envvar:: docker_swarm_pki_path
+#
+# Directory where PKI files are located on the remote host.
+docker_swarm_pki_path: '{{ ansible_local.pki.base_path
+                     if (ansible_local|d() and ansible_local.pki|d() and
+                         ansible_local.pki.base_path|d())
+                     else "/etc/pki" }}'
+
+# .. envvar:: docker_swarm_pki_realm
+#
+# Name of the PKI realm used by Docker.
+docker_swarm_pki_realm: '{{ ansible_local.pki.realm
+                      if (ansible_local|d() and ansible_local.pki|d() and
+                          ansible_local.pki.realm|d())
+                      else "system" }}'
+
+# .. envvar:: docker_swarm_pki_ca
+#
+# Name of the Root CA certificate file used by Docker.
+docker_swarm_pki_ca: 'CA.crt'
+
+
+# .. envvar:: docker_swarm_pki_crt
+#
+# Name of the host certificate used by Docker.
+docker_swarm_pki_crt: 'default.crt'
+
+
+# .. envvar:: docker_swarm_pki_key
+#
+# Name of the private key file used by Docker.
+docker_swarm_pki_key: 'default.key'
+
+# .. envvar:: docker_swarm_pki_dir
+#
+# The directory in which the PKI certificates are stored.
+docker_swarm_pki_dir: "{{ docker_swarm_pki_path }}/{{ docker_swarm_pki_realm }}"
+
+# .. envvar:: docker_swarm_overlay_name
+#
+# The name of the overlay network created during setup.
+docker_swarm_overlay_name: overlay1
+
+# .. envvar:: docker_swarm_adapter
+#
+# The name of the network adapter the docker daemon will communicate on.
+docker_swarm_adapter: eth1
+
+# .. envvar:: docker_swarm_upstream
+#
+# Toggle to use the upstream docker repositories. Reccomended as Swarm networking
+# requires Docker > 1.9
+docker_swarm_upstream: true
+
+# .. envvar:: docker_swarm_master_opts
+#
+# Options passed to the swarm master container. Defaults to nothing if PKI
+# is disabled. Provides TLS parameters if PKI is enabled. When PKI is enabled
+# this value is overidden in tasks/main.yml.
+# docker_swarm_master_opts: '{{ "--tlsverify --tlscacert {{ docker_swarm_pki_dir }}/{{ docker_swarm_pki_ca }} --tlscert {{ docker_swarm_pki_dir }}/{{ docker_swarm_pki_crt }} --tlskey {{ docker_swarm_pki_dir }}/{{ docker_swarm_pki_key }}"
+#                      if (ansible_local|d() and ansible_local.pki|d() and
+#                          ansible_local.pki.enabled|d())
+#                      else "" }}'
+docker_swarm_master_opts: ''
+
+# .. envvar:: docker_swarm_tcp_allow
+#
+# The IP address ranges that are allowed to communicate with the Docker daemon.
+docker_swarm_tcp_allow:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+
+# .. envvar:: docker_swarm_tcp_portA
+#
+# The port the docker daemon will listen on.
+docker_swarm_tcp_port: '{{ "2376"
+                     if (ansible_local|d() and ansible_local.pki|d() and
+                         ansible_local.pki.enabled|d())
+                     else "2375" }}'
+
+# .. envvar:: docker_swarm_master_daemon_port
+#
+# The port the sawrm master will listen on.
+docker_swarm_master_daemon_port: '{{ "3376"
+                     if (ansible_local|d() and ansible_local.pki|d() and
+                         ansible_local.pki.enabled|d())
+                     else "3375" }}'
+
+# .. envvar:: docker_swarm_consul_port
+#
+# The port consul will listen on.
+docker_swarm_consul_port: '8500'
+
+# .. envvar:: docker_swarm_ports
+#
+# The list of ports that the swarm nodes will communicate amongst themselves on.
+# E.G. Docker daemon, swarm master, consul.
+docker_swarm_ports:
+  - '{{ docker_swarm_tcp_port }}'
+  - '{{ docker_swarm_master_daemon_port }}'
+  - '{{ docker_swarm_consul_port }}'
+  - '8300'
+  - '8400'
+  - '8600'
+
+# .. envvar:: docker_swarm_options
+#
+# Options passed to the Docker daemon. This defaults to configuring only the
+# cluster-store and cluster-advertise options.
+docker_swarm_options:
+  - "--cluster-store=consul://{{ hostvars[groups['debops_docker_swarm'][0]]['ansible_' + docker_swarm_adapter]['ipv4']['address'] }}:{{ docker_swarm_consul_port }}"
+  - "--cluster-advertise={{ hostvars[inventory_hostname]['ansible_' + docker_swarm_adapter]['ipv4']['address'] }}:{{ docker_swarm_tcp_port }}"
+
+# .. envvar:: docker_swarm_ferm_dependent_rules
+#
+# Configuration for ``debops.ferm`` role. This allows access for the swarm members
+# to communicate amongst themselves as well as external access to the swarm master.
+docker_swarm_ferm_dependent_rules:
+  - type: 'accept'
+    dport: '{{ docker_swarm_ports }}'
+    protocol: [ 'tcp', 'udp' ]
+    saddr: '{{ docker_swarm_tcp_allow }}'
+    accept_any: False
+    weight: '50'
+    role: 'docker_swarm'
+    name: 'service_rules'

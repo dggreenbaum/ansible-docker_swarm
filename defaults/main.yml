@@ -75,6 +75,8 @@ docker_swarm_upstream: true
 #                      else "" }}'
 docker_swarm_master_opts: ''
 
+# TODO: Make docker_swarm_tcp_allow a list of the cluster member's IP address.
+
 # .. envvar:: docker_swarm_tcp_allow
 #
 # The IP address ranges that are allowed to communicate with the Docker daemon.
